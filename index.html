@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="OfferGuard AI – Smart Job & Internship Scam Detection System helping students and job seekers identify fraudulent offers.">
+  <title>OfferGuard AI – Smart Job &amp; Internship Scam Detector</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+  <style>
+    :root {
+      --bg-void: #060a13; --bg-navy: #0b1120; --bg-surface: #111a2e; --bg-surface-elevated: #16223b; --bg-input: #0a101f;
+      --border-subtle: rgba(148, 163, 184, 0.16); --border-accent: rgba(56, 189, 248, 0.35); --border-focus: #22d3ee;
+      --text-primary: #f8fafc; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
+      --accent-blue: #3b82f6; --accent-cyan: #06b6d4; --accent-cyan-bright: #22d3ee;
+      --risk-low: #10b981; --risk-low-bg: rgba(16, 185, 129, 0.14); --risk-low-border: rgba(16, 185, 129, 0.4);
+      --risk-medium: #f59e0b; --risk-medium-bg: rgba(245, 158, 11, 0.14); --risk-medium-border: rgba(245, 158, 11, 0.42);
+      --risk-high: #ef4444; --risk-high-bg: rgba(239, 68, 68, 0.14); --risk-high-border: rgba(239, 68, 68, 0.42);
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-pill: 9999px;
+      --shadow-card: 0 10px 30px -10px rgba(2, 6, 23, 0.75); --shadow-glow: 0 0 28px -6px rgba(6, 182, 212, 0.32);
+      --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      --t-fast: 160ms cubic-bezier(0.22, 1, 0.36, 1); --max-width: 1240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--text-primary);
+      background: radial-gradient(circle at 15% 10%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 85% 20%, rgba(6,182,212,0.10), transparent 36%), linear-gradient(180deg, #060a13 0%, #09101f 100%);
+      line-height: 1.6; overflow-x: hidden; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent-cyan-bright); text-decoration: none; }
+    a:hover { color: #67e8f9; }
+    :focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+    .skip-link { position: absolute; top: -100px; left: 1rem; z-index: 1000; background: var(--accent-cyan); color: #04101a; font-weight: 700; padding: 0.65rem 1rem; border-radius: var(--radius-sm); }
+    .skip-link:focus { top: 0.75rem; }
+    .container { width: 100%; max-width: var(--max-width); margin: 0 auto; padding: 0 1.25rem; }
+    main { flex: 1 0 auto; }
+    .hidden { display: none !important; }
+    .text-sec { color: var(--text-secondary); }
+    .text-mut { color: var(--text-muted); }
+    .mb-15 { margin-bottom: 1.5rem; }
+    .mt-0 { margin-top: 0; }
+    .flex-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+
+    .site-header { position: sticky; top: 0; z-index: 100; background: rgba(6,10,19,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-subtle); }
+    .nav-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 70px; }
+    .brand-link { display: inline-flex; align-items: center; gap: 0.75rem; color: var(--text-primary); font-weight: 700; }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+    .brand-title { font-size: 1.05rem; font-weight: 700; }
+    .brand-sub { font-size: 0.72rem; color: var(--accent-cyan-bright); letter-spacing: 0.04em; text-transform: uppercase; }
+    .nav-links { display: flex; align-items: center; gap: 0.45rem; }
+    .nav-btn { background: transparent; border: none; color: var(--text-secondary); font-family: inherit; font-size: 0.93rem; font-weight: 500; padding: 0.5rem 0.85rem; border-radius: var(--radius-sm); cursor: pointer; transition: background-color var(--t-fast), color var(--t-fast); }
+    .nav-btn:hover { color: var(--text-primary); background: rgba(59,130,246,0.12); }
+    .nav-btn.active { color: var(--accent-cyan-bright); background: rgba(6,182,212,0.14); }
+    .nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .mode-badge { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.76rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); background: rgba(17,26,46,0.9); color: var(--text-secondary); white-space: nowrap; }
+    .mode-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--risk-medium); }
+    .mode-badge.mode-live { border-color: rgba(16,185,129,0.45); color: #6ee7b7; }
+    .mode-badge.mode-live .dot { background: var(--risk-low); box-shadow: 0 0 8px var(--risk-low); }
+    .mode-badge.mode-demo { border-color: rgba(245,158,11,0.45); color: #fcd34d; }
+    .nav-toggle { display: none; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; min-width: 44px; min-height: 44px; cursor: pointer; align-items: center; justify-content: center; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; font-size: 0.94rem; font-weight: 600; padding: 0.72rem 1.3rem; min-height: 44px; border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer; transition: transform var(--t-fast), background-color var(--t-fast), border-color var(--t-fast); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan)); color: #fff; box-shadow: 0 6px 20px -6px rgba(6,182,212,0.55); }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); color: #fff; }
+    .btn-secondary { background: var(--bg-surface-elevated); color: var(--text-primary); border-color: var(--border-accent); }
+    .btn-secondary:hover:not(:disabled) { background: rgba(59,130,246,0.16); border-color: var(--accent-cyan-bright); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border-color: var(--border-subtle); }
+    .btn-ghost:hover:not(:disabled) { color: var(--text-primary); background: rgba(148,163,184,0.1); }
+    .btn-sm { padding: 0.45rem 0.9rem; min-height: 36px; font-size: 0.84rem; }
+
+    .card { background: rgba(17,26,46,0.88); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.4rem; box-shadow: var(--shadow-card); }
+    .card-accent { border-color: var(--border-accent); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .card-title { margin: 0; font-size: 1.08rem; font-weight: 700; }
+    .section { padding: 3rem 0; }
+    .section-header { max-width: 720px; margin-bottom: 1.75rem; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-cyan-bright); margin-bottom: 0.55rem; }
+    h1, h2, h3, h4 { margin-top: 0; color: var(--text-primary); letter-spacing: -0.02em; }
+    .section-title { font-size: clamp(1.5rem, 2.5vw, 2.1rem); margin-bottom: 0.6rem; }
+    .section-lead { color: var(--text-secondary); margin: 0; }
+    .grid { display: grid; gap: 1.25rem; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .page-banner { padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--border-subtle); margin-bottom: 2rem; }
+    .page-banner-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+
+    .hero { padding: 4rem 0 3rem; border-bottom: 1px solid var(--border-subtle); }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 2.25rem; align-items: center; }
+    .hero-title { font-size: clamp(2.1rem, 4.2vw, 3.25rem); line-height: 1.12; margin-bottom: 1rem; }
+    .hero-title .gradient-text { background: linear-gradient(90deg, #60a5fa, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-desc { font-size: 1.06rem; color: var(--text-secondary); max-width: 60ch; margin-bottom: 1.65rem; }
+    .hero-cta-row { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-bottom: 1.5rem; }
+    .trust-strip { display: flex; flex-wrap: wrap; gap: 1.15rem; font-size: 0.86rem; color: var(--text-muted); }
+    .preview-terminal { background: linear-gradient(180deg, #0d1629 0%, #09101f 100%); border: 1px solid var(--border-accent); border-radius: var(--radius-lg); padding: 1.35rem; box-shadow: var(--shadow-glow), var(--shadow-card); }
+    .terminal-top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.85rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem; color: var(--text-muted); font-family: var(--font-mono); }
+    .signal-list { display: flex; flex-direction: column; gap: 0.7rem; }
+    .signal-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 0.7rem 0.85rem; border-radius: var(--radius-sm); background: rgba(15,23,42,0.8); border: 1px solid var(--border-subtle); font-size: 0.88rem; }
+
+    .pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .pill-low { background: var(--risk-low-bg); color: #6ee7b7; border: 1px solid var(--risk-low-border); }
+    .pill-medium { background: var(--risk-medium-bg); color: #fcd34d; border: 1px solid var(--risk-medium-border); }
+    .pill-high { background: var(--risk-high-bg); color: #fca5a5; border: 1px solid var(--risk-high-border); }
+    .pill-info { background: rgba(59,130,246,0.16); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4); }
+    .alert { padding: 0.9rem 1.05rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 1rem; font-size: 0.92rem; }
+    .alert-error { background: var(--risk-high-bg); border-color: var(--risk-high-border); color: #fecaca; }
+    .alert-success { background: var(--risk-low-bg); border-color: var(--risk-low-border); color: #a7f3d0; }
+    .alert-warning { background: var(--risk-medium-bg); border-color: var(--risk-medium-border); color: #fde68a; }
+    .alert-info { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); color: #bfdbfe; }
+
+    .analyzer-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.85fr); gap: 1.5rem; align-items: start; }
+    .form-group { margin-bottom: 1.15rem; }
+    .form-label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.45rem; }
+    .form-control { width: 100%; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.72rem 0.9rem; font-family: inherit; font-size: 0.95rem; }
+    .form-control:focus { outline: none; border-color: var(--accent-cyan-bright); box-shadow: 0 0 0 3px rgba(34,211,238,0.16); }
+    textarea.form-control { min-height: 220px; resize: vertical; line-height: 1.55; }
+    .job-type-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+    .job-type-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .job-type-option label { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; padding: 0.55rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--bg-input); color: var(--text-secondary); font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+    .job-type-option input:checked + label { background: rgba(6,182,212,0.16); border-color: var(--accent-cyan-bright); color: var(--text-primary); }
+    .dropzone { border: 1.5px dashed var(--border-accent); border-radius: var(--radius-md); background: rgba(10,16,31,0.72); padding: 1.25rem; text-align: center; cursor: pointer; }
+    .dropzone:hover, .dropzone.drag-over { border-color: var(--accent-cyan-bright); background: rgba(6,182,212,0.08); }
+    .file-chip { display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; padding: 0.4rem 0.8rem; border-radius: var(--radius-pill); background: rgba(59,130,246,0.14); border: 1px solid rgba(59,130,246,0.35); font-size: 0.84rem; }
+    .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.28); border-top-color: #fff; border-radius: 50%; animation: og-spin 0.75s linear infinite; }
+    @keyframes og-spin { to { transform: rotate(360deg); } }
+
+    .kpi-card { display: flex; flex-direction: column; gap: 0.35rem; }
+    .kpi-label { font-size: 0.84rem; color: var(--text-muted); font-weight: 600; }
+    .kpi-value { font-size: 2rem; font-weight: 800; font-family: var(--font-mono); line-height: 1.1; }
+    .chart-wrap { position: relative; min-height: 250px; display: flex; align-items: center; justify-content: center; }
+    .table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .data-table th, .data-table td { text-align: left; padding: 0.78rem 0.75rem; border-bottom: 1px solid var(--border-subtle); }
+    .data-table th { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .gauge-box { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .gauge-svg { width: 240px; max-width: 100%; height: auto; }
+    .gauge-score { font-family: var(--font-mono); font-size: 2.4rem; font-weight: 800; fill: var(--text-primary); }
+    .gauge-sub { font-size: 0.8rem; fill: var(--text-muted); }
+    .phrase-chip { display: inline-block; font-family: var(--font-mono); font-size: 0.82rem; background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.35); color: #fecaca; padding: 0.25rem 0.55rem; border-radius: 6px; margin: 0.2rem 0.35rem 0.2rem 0; word-break: break-word; }
+    .finding-item { padding: 1rem; border-radius: var(--radius-sm); background: rgba(10,16,31,0.7); border: 1px solid var(--border-subtle); margin-bottom: 0.85rem; }
+    .finding-item:last-child { margin-bottom: 0; }
+    .finding-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
+
+    .advisor-messages { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; padding: 1rem; border-radius: var(--radius-sm); background: var(--bg-input); border: 1px solid var(--border-subtle); margin-bottom: 1rem; }
+    .chat-msg { padding: 0.78rem 1rem; border-radius: var(--radius-sm); font-size: 0.92rem; max-width: 90%; white-space: pre-wrap; }
+    .chat-msg-user { align-self: flex-end; background: rgba(59,130,246,0.22); border: 1px solid rgba(59,130,246,0.4); }
+    .chat-msg-bot { align-self: flex-start; background: rgba(17,26,46,0.95); border: 1px solid var(--border-accent); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+    .chip-btn { background: rgba(17,26,46,0.9); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); padding: 0.4rem 0.85rem; font-size: 0.82rem; cursor: pointer; }
+    .chip-btn:hover { color: var(--text-primary); border-color: var(--accent-cyan-bright); background: rgba(6,182,212,0.14); }
+    .advisor-input-row { display: flex; gap: 0.65rem; }
+    .advisor-input-row .form-control { flex: 1; }
+
+    .site-footer { margin-top: auto; border-top: 1px solid var(--border-subtle); background: rgba(6,10,19,0.92); padding: 2rem 0; font-size: 0.88rem; color: var(--text-muted); }
+    .footer-grid { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 1.15rem; }
+
+    @media (max-width: 960px) { .hero-grid, .analyzer-layout { grid-template-columns: 1fr; } .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 768px) {
+      .nav-toggle { display: inline-flex; }
+      .nav-links { display: none; position: absolute; top: 70px; left: 0; right: 0; flex-direction: column; align-items: stretch; padding: 1rem 1.25rem; background: #080d1a; border-bottom: 1px solid var(--border-subtle); }
+      .nav-links.open { display: flex; }
+      .mode-badge-text { display: none; }
+      .grid-2, .grid-3, .grid-4, .job-type-grid { grid-template-columns: 1fr; }
+      .advisor-input-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="container nav-bar">
+      <a class="brand-link" href="#home" data-route="home">
+        <svg viewBox="0 0 64 64" width="36" height="36" fill="none" aria-hidden="true">
+          <defs><linearGradient id="og-g" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs>
+          <path d="M32 4L10 13.5V29.5C10 44.2 19.4 56.8 32 60C44.6 56.8 54 44.2 54 29.5V13.5L32 4Z" fill="#0f172a" stroke="url(#og-g)" stroke-width="2.75" stroke-linejoin="round"/>
+          <circle cx="32" cy="31" r="10.5" stroke="#3b82f6" stroke-opacity="0.5" stroke-width="1.5" stroke-dasharray="3 2.5"/>
+          <path d="M25.5 31.5L29.8 35.8L39.2 25.8" stroke="#22d3ee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-text"><span class="brand-title">OfferGuard AI</span><span class="brand-sub">Recruitment Security</span></span>
+      </a>
+      <nav id="primary-nav" class="nav-links" aria-label="Main navigation">
+        <button class="nav-btn active" type="button" data-route="home">Home</button>
+        <button class="nav-btn" type="button" data-route="dashboard">Dashboard</button>
+        <button class="nav-btn" type="button" data-route="analyzer">Offer Analyzer</button>
+        <button class="nav-btn" type="button" data-route="results">Latest Results</button>
+      </nav>
+      <div class="nav-actions">
+        <span id="global-mode-badge" class="mode-badge mode-demo"><span class="dot" aria-hidden="true"></span><span class="mode-badge-text" id="global-mode-text">Demo Mode (Rules)</span></span>
+        <button class="btn btn-primary btn-sm" type="button" data-route="analyzer">Analyze Offer</button>
+        <button class="nav-toggle" type="button" id="nav-toggle-btn" aria-controls="primary-nav" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section id="view-home" class="view-section">
+      <div class="hero">
+        <div class="container hero-grid">
+          <div>
+            <div class="eyebrow">Recruitment Cybersecurity Platform</div>
+            <h1 class="hero-title">Stay One Step Ahead of <span class="gradient-text">Job Scams.</span></h1>
+            <p class="hero-desc">OfferGuard AI helps students, freshers, and job seekers inspect job descriptions, internship emails, and offer letters using explainable fraud-detection rules and preliminary company-domain consistency checks.</p>
+            <div class="hero-cta-row">
+              <button class="btn btn-primary" type="button" data-route="analyzer">Start Free Analysis</button>
+              <button class="btn btn-secondary" type="button" data-route="dashboard">Open Security Dashboard</button>
+            </div>
+            <div class="trust-strip"><span>&#128274; In-memory parsing (no file retention)</span><span>&#9889; 12 weighted fraud indicators</span><span>&#128196; Exportable PDF security report</span></div>
+          </div>
+          <aside class="preview-terminal" aria-label="Detection Overview">
+            <div class="terminal-top"><span>OFFERGUARD_ENGINE // HYBRID ANALYZER</span><span class="pill pill-info">Explainable Score</span></div>
+            <div class="signal-list">
+              <div class="signal-row"><div><strong>Upfront Fee Detection</strong><div class="text-mut" style="font-size:0.82rem;">Flags registration fees, security deposits, and pre-interview payments.</div></div><span class="pill pill-high">High Signal</span></div>
+              <div class="signal-row"><div><strong>Selection &amp; Compensation Context</strong><div class="text-mut" style="font-size:0.82rem;">Calibrates expectations across Internship, Full-Time, Part-Time, and Freelance.</div></div><span class="pill pill-medium">Contextual</span></div>
+              <div class="signal-row"><div><strong>Company Domain Consistency</strong><div class="text-mut" style="font-size:0.82rem;">Cross-checks contact email domains against corporate website URLs.</div></div><span class="pill pill-info">Verification</span></div>
+              <div class="signal-row"><div><strong>Evidence-Grounded Safety Advisor</strong><div class="text-mut" style="font-size:0.82rem;">Interactive Q&amp;A locked strictly to extracted findings and safety steps.</div></div><span class="pill pill-low">Protected</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="container">
+          <div class="section-header"><div class="eyebrow">Capabilities</div><h2 class="section-title">Designed Like a Real Recruitment Security Console</h2><p class="section-lead">Every assessment pairs deterministic rule evidence with transparent explanations so you always see why an offer was flagged.</p></div>
+          <div class="grid grid-3">
+            <article class="card"><h3 class="card-title">12-Indicator Fraud Engine</h3><p class="text-sec">Detects upfront fees, training deposits, guaranteed selection, KYC harvesting, webmail recruiters, urgency tactics, and vague scopes.</p></article>
+            <article class="card"><h3 class="card-title">Context-Aware Scoring</h3><p class="text-sec">Weights indicators across Internship, Full-Time, Part-Time, and Freelance roles without auto-failing from one mild flag.</p></article>
+            <article class="card"><h3 class="card-title">PDF, DOCX &amp; TXT Upload</h3><p class="text-sec">Validated by extension, size, and signature, parsed strictly in memory, and never executed or saved to disk.</p></article>
+            <article class="card"><h3 class="card-title">Company Trust Analysis</h3><p class="text-sec">Audits website syntax, domain mismatch, and missing corporate disclosures while clearly labeling unverified preliminary status.</p></article>
+            <article class="card"><h3 class="card-title">AI Safety Advisor</h3><p class="text-sec">Answers practical follow-up questions about fees, verification steps, and sensitive data safety using current case evidence.</p></article>
+            <article class="card"><h3 class="card-title">Downloadable PDF Report</h3><p class="text-sec">Exports a branded assessment brief containing risk scores, quoted phrases, recommendations, and clear disclaimers.</p></article>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="how-it-works" style="border-top:1px solid var(--border-subtle);">
+        <div class="container">
+          <div class="section-header"><div class="eyebrow">Workflow</div><h2 class="section-title">How OfferGuard AI Works</h2></div>
+          <div class="grid grid-4">
+            <article class="card"><span class="pill pill-info" style="margin-bottom:0.75rem;">Step 01</span><h3 class="card-title">Paste or Upload</h3><p class="text-sec">Supply message text or upload a PDF, DOCX, or TXT offer letter with job type and optional company info.</p></article>
+            <article class="card"><span class="pill pill-info" style="margin-bottom:0.75rem;">Step 02</span><h3 class="card-title">Hybrid Analysis</h3><p class="text-sec">Rules extract quoted suspicious phrases and compute context-adjusted weights across 5 risk dimensions.</p></article>
+            <article class="card"><span class="pill pill-info" style="margin-bottom:0.75rem;">Step 03</span><h3 class="card-title">Inspect Evidence</h3><p class="text-sec">Review your 0–100 gauge, positive trust signals, missing verification items, and domain alignment.</p></article>
+            <article class="card"><span class="pill pill-info" style="margin-bottom:0.75rem;">Step 04</span><h3 class="card-title">Consult &amp; Export</h3><p class="text-sec">Ask the Safety Advisor follow-up questions and download a formatted PDF report.</p></article>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="privacy" style="border-top:1px solid var(--border-subtle);">
+        <div class="container grid grid-2">
+          <div class="card card-accent"><div class="eyebrow">Why OfferGuard AI</div><h2 class="section-title">Honest, Explainable Decisions</h2><p class="text-sec">OfferGuard AI treats untrusted recruitment text as passive data, anchors scores in quoted phrases, and never claims an unverified firm is legitimate.</p></div>
+          <div class="card"><div class="eyebrow">Privacy &amp; Security</div><h2 class="section-title">Least-Privilege Safeguards</h2><ul class="text-sec" style="padding-left:1.2rem;margin-bottom:1.1rem;"><li>No API keys exposed in frontend JavaScript</li><li>Uploaded files parsed in volatile memory only</li><li>Rate limiting and strict HTTP security headers enabled</li></ul><button class="btn btn-primary" type="button" data-route="analyzer">Launch Offer Analyzer</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-dashboard" class="view-section hidden">
+      <div class="page-banner"><div class="container page-banner-row"><div><div class="eyebrow">Session Intelligence Overview</div><h1 style="margin-bottom:0.25rem;">Security Dashboard</h1><p class="section-lead">Real-time session metrics and assessment history. No fabricated statistics are displayed.</p></div><div class="flex-row"><button class="btn btn-primary" type="button" data-route="analyzer">+ New Offer Analysis</button><button class="btn btn-ghost" type="button" id="clear-session-btn">Clear Session History</button></div></div></div>
+      <div class="container" style="padding-bottom:3rem;">
+        <div id="dashboard-alert" class="alert hidden" role="status" aria-live="polite"></div>
+        <div class="grid grid-4 mb-15">
+          <article class="card kpi-card"><span class="kpi-label">Total Session Analyses</span><span class="kpi-value" id="stat-total">0</span><span class="text-mut" style="font-size:0.8rem;">Current browser session</span></article>
+          <article class="card kpi-card"><span class="kpi-label">Low Risk (0–29)</span><span class="kpi-value" id="stat-low" style="color:var(--risk-low);">0</span><span class="text-mut" style="font-size:0.8rem;">Low warning indicators</span></article>
+          <article class="card kpi-card"><span class="kpi-label">Medium Risk (30–59)</span><span class="kpi-value" id="stat-medium" style="color:var(--risk-medium);">0</span><span class="text-mut" style="font-size:0.8rem;">Needs independent check</span></article>
+          <article class="card kpi-card"><span class="kpi-label">High Risk (60–100)</span><span class="kpi-value" id="stat-high" style="color:var(--risk-high);">0</span><span class="text-mut" style="font-size:0.8rem;">Strong scam red flags</span></article>
+        </div>
+        <div class="grid grid-2 mb-15">
+          <article class="card"><div class="card-header"><h2 class="card-title">Session Risk Distribution</h2><span class="pill pill-info">Live Session Data</span></div><div class="chart-wrap"><canvas id="riskDistributionChart" aria-label="Session risk distribution chart"></canvas><div id="chart-empty-state" class="text-mut" style="text-align:center;padding:1.5rem;"><p style="margin-bottom:0.75rem;">0 analyses recorded in this session yet.</p><button class="btn btn-secondary btn-sm" type="button" data-route="analyzer">Analyze Your First Offer</button></div></div></article>
+          <article class="card"><div class="card-header"><h2 class="card-title">Recruitment Security Guidelines</h2><span class="pill pill-low">Prevention</span></div><ul class="text-sec" style="margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:0.55rem;"><li><strong>Never pay upfront:</strong> Reputable employers never charge registration, laptop, training, or verification fees.</li><li><strong>Verify domains independently:</strong> Confirm recruiter email domains match official corporate websites.</li><li><strong>Beware instant selection:</strong> High-paying offers without any technical or structured interview are a strong red flag.</li><li><strong>Protect identity documents:</strong> Never share Aadhaar, PAN, SSN, passport scans, bank PINs, or OTPs over WhatsApp/Telegram.</li><li><strong>Reject artificial urgency:</strong> Countdown threats ("pay within 2 hours") aim to bypass verification.</li></ul></article>
+        </div>
+        <article class="card mb-15"><div class="card-header"><h2 class="card-title">Recent Session Analysis History</h2><span class="text-mut" style="font-size:0.84rem;">Ephemeral session storage</span></div><div id="history-empty" class="text-mut" style="padding:1rem 0;">No offers analyzed in this session yet.</div><div class="table-wrap hidden" id="history-table-wrap"><table class="data-table"><thead><tr><th>Time</th><th>Company / Excerpt</th><th>Job Type</th><th>Score</th><th>Category</th><th>Mode</th><th>Actions</th></tr></thead><tbody id="history-tbody"></tbody></table></div></article>
+        <article class="card card-accent"><div class="card-header"><h2 class="card-title">Sample Scenarios (Demonstration Only)</h2><span class="pill pill-info">Not Session Stats</span></div><p class="text-sec mt-0">Load a labeled test message into the Offer Analyzer:</p><div class="flex-row"><button class="btn btn-secondary btn-sm quick-sample-btn" type="button" data-sample="scam_internship">Test: Upfront Fee Internship</button><button class="btn btn-secondary btn-sm quick-sample-btn" type="button" data-sample="urgent_freelance">Test: Telegram/KYC Urgent Offer</button><button class="btn btn-secondary btn-sm quick-sample-btn" type="button" data-sample="legit_swe">Test: Standard Engineering Offer</button></div></article>
+      </div>
+    </section>
+
+    <section id="view-analyzer" class="view-section hidden">
+      <div class="page-banner"><div class="container page-banner-row"><div><div class="eyebrow">Hybrid Scam &amp; Risk Scanner</div><h1 style="margin-bottom:0.25rem;">AI Offer Analyzer</h1><p class="section-lead">Paste a job description, recruitment message, or upload an offer letter (.pdf, .docx, .txt) for explainable risk evaluation.</p></div><span id="analyzer-mode-badge" class="mode-badge mode-demo"><span class="dot" aria-hidden="true"></span><span id="analyzer-mode-text">Demo Mode: Rule-Based Detection</span></span></div></div>
+      <div class="container analyzer-layout" style="padding-bottom:3rem;">
+        <form class="card card-accent" id="analyzer-form" novalidate>
+          <div id="analyzer-alert" class="alert hidden" role="alert" aria-live="polite"></div>
+          <div class="form-group"><span class="form-label" id="job-type-label">Opportunity Type</span><div class="job-type-grid" role="radiogroup" aria-labelledby="job-type-label"><div class="job-type-option"><input type="radio" id="jt-internship" name="job_type" value="Internship" checked><label for="jt-internship">Internship</label></div><div class="job-type-option"><input type="radio" id="jt-fulltime" name="job_type" value="Full-Time Job"><label for="jt-fulltime">Full-Time Job</label></div><div class="job-type-option"><input type="radio" id="jt-parttime" name="job_type" value="Part-Time Job"><label for="jt-parttime">Part-Time Job</label></div><div class="job-type-option"><input type="radio" id="jt-freelance" name="job_type" value="Freelance"><label for="jt-freelance">Freelance</label></div></div></div>
+          <div class="grid grid-2">
+            <div class="form-group"><label class="form-label" for="company-name">Company Name <span class="text-mut" style="font-weight:400;">(Optional)</span></label><input class="form-control" type="text" id="company-name" maxlength="160" placeholder="e.g., Northstar Cloud Systems"></div>
+            <div class="form-group"><label class="form-label" for="company-website">Company Website <span class="text-mut" style="font-weight:400;">(Optional)</span></label><input class="form-control" type="url" id="company-website" maxlength="255" placeholder="e.g., https://northstarcloud.com"></div>
+          </div>
+          <div class="form-group"><label class="form-label" for="document-upload">Upload Offer Letter or JD Document <span class="text-mut" style="font-weight:400;" id="upload-limit-label">(Optional • PDF, DOCX, TXT • Max 2 MB)</span></label><div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload PDF, DOCX, or TXT document"><input type="file" id="document-upload" accept=".pdf,.docx,.txt" class="hidden"><div style="font-weight:600;">Drag &amp; drop a document here, or click to browse</div><div class="text-mut" style="font-size:0.82rem;margin-top:0.25rem;">Validated and extracted in memory only. Never executed or stored to disk.</div><div id="file-status" class="file-chip hidden"></div></div></div>
+          <div class="form-group"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;"><label class="form-label" for="offer-text">Job Description, Recruitment Email, or Offer Text <span style="color:var(--risk-high);">*</span></label><span id="char-counter" class="text-mut" style="font-size:0.8rem;font-family:var(--font-mono);">0 / 25000</span></div><textarea class="form-control" id="offer-text" maxlength="25000" required placeholder="Paste the full job posting, WhatsApp/Telegram recruitment message, email, or offer letter text here..."></textarea></div>
+          <div class="flex-row"><button class="btn btn-primary" type="submit" id="analyze-btn"><span class="spinner hidden" id="analyze-spinner" aria-hidden="true"></span><span id="analyze-btn-text">Analyze Offer</span></button><button class="btn btn-ghost" type="button" id="reset-btn">Clear &amp; Reset</button></div>
+        </form>
+        <aside style="display:flex;flex-direction:column;gap:1.25rem;">
+          <div class="card"><h2 class="card-title" style="margin-bottom:0.5rem;">Load Sample Scenario</h2><p class="text-mut mt-0" style="font-size:0.86rem;">One-click realistic test cases:</p><div style="display:flex;flex-direction:column;gap:0.6rem;"><button class="btn btn-secondary btn-sm sample-btn" type="button" data-sample="scam_internship">1. Suspicious Paid Internship (High Risk)</button><button class="btn btn-secondary btn-sm sample-btn" type="button" data-sample="urgent_freelance">2. Urgent Telegram &amp; KYC Offer</button><button class="btn btn-secondary btn-sm sample-btn" type="button" data-sample="ambiguous_startup">3. Incomplete Startup Role (Medium Risk)</button><button class="btn btn-secondary btn-sm sample-btn" type="button" data-sample="legit_swe">4. Structured Engineering Offer (Low Risk)</button></div></div>
+          <div class="card"><h2 class="card-title" style="margin-bottom:0.5rem;">12 Fraud Checks Active</h2><ul class="text-sec" style="margin:0;padding-left:1.15rem;font-size:0.87rem;display:flex;flex-direction:column;gap:0.4rem;"><li>Registration, training &amp; security deposits</li><li>Payment before interview or offer confirmation</li><li>Context-calibrated unrealistic salary promises</li><li>Guaranteed selection without interview</li><li>Sensitive KYC / Aadhaar / PAN / OTP requests</li><li>Suspicious domains, short links &amp; urgency pressure</li></ul></div>
+          <div class="alert alert-info" style="margin-bottom:0;"><strong>Prompt-Injection Protection:</strong> Pasted and uploaded content is analyzed strictly as untrusted passive data.</div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-results" class="view-section hidden">
+      <div class="page-banner"><div class="container page-banner-row"><div><div class="eyebrow">Explainable Threat Assessment</div><h1 style="margin-bottom:0.25rem;">AI Risk Assessment Results</h1><p class="section-lead" id="results-subtitle">No active analysis selected in this session.</p></div><div id="results-header-actions" class="hidden flex-row"><a class="btn btn-primary" id="download-pdf-btn" href="#">Download PDF Report</a><button class="btn btn-secondary" type="button" data-route="analyzer">Analyze Another Offer</button></div></div></div>
+      <div class="container" style="padding-bottom:3rem;">
+        <div id="results-empty-card" class="card" style="text-align:center;padding:3rem 1.5rem;"><h2>No Offer Analysis Found</h2><p class="text-sec" style="max-width:52ch;margin:0 auto 1.5rem;">Run an assessment in the AI Offer Analyzer to view your risk gauge, quoted suspicious phrases, company domain consistency, and interactive Safety Advisor.</p><button class="btn btn-primary" type="button" data-route="analyzer">Go to Offer Analyzer</button></div>
+        <div id="results-content" class="hidden">
+          <div id="results-mode-banner" class="alert alert-warning" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;"><div><strong>Analysis Mode:</strong> <span id="res-mode-label"></span><div id="res-ai-notice" class="hidden" style="font-size:0.85rem;margin-top:0.2rem;"></div></div><span id="res-header-pill" class="pill pill-medium"></span></div>
+          <div class="grid grid-2 mb-15">
+            <article class="card card-accent">
+              <div class="card-header"><h2 class="card-title">Overall Risk Score</h2><span id="res-band-pill" class="pill pill-info"></span></div>
+              <div class="gauge-box"><svg class="gauge-svg" viewBox="0 0 220 135" role="img" aria-label="Overall risk score gauge"><path d="M 24 112 A 86 86 0 0 1 196 112" fill="none" stroke="rgba(148,163,184,0.18)" stroke-width="16" stroke-linecap="round"/><path id="gauge-arc" d="M 24 112 A 86 86 0 0 1 196 112" fill="none" stroke="#22d3ee" stroke-width="16" stroke-linecap="round" stroke-dasharray="270.2" stroke-dashoffset="270.2"/><text x="110" y="92" text-anchor="middle" class="gauge-score" id="gauge-score-text">0</text><text x="110" y="114" text-anchor="middle" class="gauge-sub" id="gauge-sub-text">OUT OF 100</text></svg></div>
+              <h3 style="font-size:0.96rem;margin-top:0.5rem;">Executive Summary</h3><p class="text-sec" style="margin-bottom:0.9rem;" id="res-summary"></p>
+              <div class="alert alert-info" style="margin-bottom:0;font-size:0.84rem;"><strong>Disclaimer:</strong> <span id="res-disclaimer"></span></div>
+            </article>
+            <article class="card"><div class="card-header"><h2 class="card-title">Risk Dimension Breakdown</h2><span class="pill pill-info">5 Categories</span></div><div class="chart-wrap"><canvas id="categoryChart" aria-label="Risk breakdown chart"></canvas></div><div class="text-mut" style="margin-top:0.85rem;font-size:0.84rem;"><strong>Consistent Bands:</strong> 0–29 Low • 30–59 Medium • 60–100 High risk indicators.</div></article>
+          </div>
+          <article class="card mb-15"><div class="card-header"><h2 class="card-title">Detected Warning Signs &amp; Quoted Evidence</h2><span class="pill pill-info" id="res-warning-count">0 Indicator(s)</span></div><div id="res-warnings-list"></div></article>
+          <div class="grid grid-2 mb-15">
+            <article class="card"><div class="card-header"><h2 class="card-title">Positive Trust Indicators</h2><span class="pill pill-low" id="res-pos-count">0</span></div><div id="res-positives-list"></div></article>
+            <article class="card"><div class="card-header"><h2 class="card-title">Missing Information to Verify</h2><span class="pill pill-medium" id="res-miss-count">0</span></div><div id="res-missing-list"></div></article>
+          </div>
+          <div class="grid grid-2 mb-15">
+            <article class="card"><div class="card-header"><h2 class="card-title">Recommended Next Steps</h2><span class="pill pill-info">Action Plan</span></div><ol id="res-steps-list" class="text-sec" style="margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:0.5rem;"></ol></article>
+            <article class="card"><div class="card-header"><h2 class="card-title">Confidence &amp; Evidence Limitations</h2><span class="pill pill-info" id="res-conf-pill">Moderate</span></div><p class="text-sec mt-0" id="res-conf-text"></p><div class="text-mut" style="font-size:0.84rem;border-top:1px solid var(--border-subtle);padding-top:0.75rem;">OfferGuard AI evaluates supplied text patterns and domain consistency; it does not inspect private corporate registries.</div></article>
+          </div>
+          <article class="card card-accent mb-15">
+            <div class="card-header"><div><h2 class="card-title">Company Trust Analysis</h2><div class="text-mut" style="font-size:0.84rem;">Status: <strong id="trust-status"></strong> • Source: <span id="trust-source"></span> • Checked: <span id="trust-checked"></span></div></div><span class="pill pill-medium" id="trust-badge">Unverified Preliminary</span></div>
+            <p class="text-sec" id="trust-summary"></p><div id="trust-signals-list" class="grid grid-2" style="margin-bottom:1rem;"></div>
+            <form id="company-trust-form" style="border-top:1px solid var(--border-subtle);padding-top:1rem;"><div style="font-size:0.88rem;font-weight:600;margin-bottom:0.65rem;">Update or Re-check Company Details</div><div class="grid grid-3" style="align-items:end;"><div><label class="form-label" for="trust-company-name">Company Name</label><input class="form-control" type="text" id="trust-company-name" placeholder="Enter company name"></div><div><label class="form-label" for="trust-company-website">Company Website</label><input class="form-control" type="url" id="trust-company-website" placeholder="https://company.example"></div><div><button class="btn btn-secondary" type="submit" id="trust-recheck-btn" style="width:100%;">Run Trust Check</button></div></div></form>
+          </article>
+          <article class="card card-accent">
+            <div class="card-header"><div><h2 class="card-title">AI Safety Advisor</h2><div class="text-mut" style="font-size:0.84rem;">Ask contextual questions grounded strictly in this offer&rsquo;s findings.</div></div><span class="pill pill-info" id="advisor-mode-pill">Context-Aware</span></div>
+            <div class="chip-row" aria-label="Suggested safety questions"><button class="chip-btn advisor-chip" type="button" id="chip-safe-apply">Is this offer safe to apply for?</button><button class="chip-btn advisor-chip" type="button">Why is this offer suspicious?</button><button class="chip-btn advisor-chip" type="button">Should I pay the registration fee?</button><button class="chip-btn advisor-chip" type="button">What should I verify before accepting?</button><button class="chip-btn advisor-chip" type="button">What information should I avoid sharing?</button></div>
+            <div class="advisor-messages" id="advisor-messages" aria-live="polite"></div>
+            <div id="advisor-error" class="alert alert-error hidden" role="alert"></div>
+            <form id="advisor-form" class="advisor-input-row"><label class="skip-link" for="advisor-question">Ask the AI Safety Advisor</label><input class="form-control" type="text" id="advisor-question" maxlength="1000" placeholder="Ask about fees, verification steps, red flags, or personal info safety..." required><button class="btn btn-primary" type="submit" id="advisor-send-btn">Ask Advisor</button></form>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-grid"><div><strong>OfferGuard AI</strong> &mdash; Smart Job &amp; Internship Scam Detection System.<div>Risk assessments are analytical indicators and not legal proof of fraud or legitimacy.</div></div><div class="footer-links"><a href="#home" data-route="home">Home</a><a href="#dashboard" data-route="dashboard">Dashboard</a><a href="#analyzer" data-route="analyzer">Offer Analyzer</a><a href="#results" data-route="results">Latest Results</a></div></div></footer>
+
+  <script>
+    (function () {
+      "use strict";
+      var SAMPLES = {
+        scam_internship: { job_type: "Internship", company_name: "", company_website: "", offer_text: "Congratulations! You are selected for a remote internship. Pay ₹1,999 as a registration fee to receive your offer letter. Earn ₹80,000 per month without an interview." },
+        urgent_freelance: { job_type: "Freelance", company_name: "Global Peak Tech Solutions", company_website: "http://bit.ly/global-peak-hire", offer_text: "URGENT HIRING!! Guaranteed ₹45,000 weekly payout working 1 hour daily from home. No interview required. Contact HR only on WhatsApp or Telegram @hr_instant_desk and hr.globalpeak2026@gmail.com. Send Aadhaar card, PAN, bank account number, and ₹950 refundable security deposit within 2 hours before seats close!" },
+        ambiguous_startup: { job_type: "Internship", company_name: "NovaSpark Digital", company_website: "", offer_text: "We are hiring Software Interns for a 3-month remote program. Stipend: ₹12,000/month. Selected candidates will collaborate on web projects. Please reply with your resume to careers.novaspark@gmail.com to schedule an introductory call." },
+        legit_swe: { job_type: "Full-Time Job", company_name: "Northstar Cloud Systems", company_website: "https://northstarcloud.com", offer_text: "Position: Junior Backend Engineer (Full-Time, Bengaluru / Hybrid).\nCompensation: ₹9,50,000 - ₹11,50,000 LPA based on experience.\nSelection Process: 1) Online coding assessment, 2) Technical architecture & Python/SQL interview, 3) Final HR discussion.\nResponsibilities: Design RESTful APIs in Python/Flask, write automated pytest suites, participate in peer code reviews.\nContact: talent@northstarcloud.com. Northstar Cloud Systems never charges candidates any fee at any stage of recruitment." }
+      };
+      var state = { config: { llm_configured: false, max_upload_mb: 2, max_text_length: 25000 }, currentAnalysis: null, riskChart: null, categoryChart: null };
+      var $ = function (id) { return document.getElementById(id); };
+      var pillClass = function (cat) { var c = String(cat || "").toLowerCase(); return c === "low" ? "pill-low" : (c === "medium" ? "pill-medium" : "pill-high"); };
+
+      function showAlert(el, msg, type) { if (el) { el.className = "alert alert-" + (type || "info"); el.textContent = msg; el.classList.remove("hidden"); } }
+      function hideAlert(el) { if (el) { el.classList.add("hidden"); el.textContent = ""; } }
+
+      function switchView(route) {
+        var target = ["home", "dashboard", "analyzer", "results"].indexOf(route) !== -1 ? route : "home";
+        document.querySelectorAll(".view-section").forEach(function (s) { s.classList.toggle("hidden", s.id !== "view-" + target); });
+        document.querySelectorAll(".nav-btn").forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-route") === target); });
+        var nav = $("primary-nav"), tog = $("nav-toggle-btn");
+        if (nav && nav.classList.contains("open")) { nav.classList.remove("open"); if (tog) tog.setAttribute("aria-expanded", "false"); }
+        if (window.location.hash !== "#" + target) history.replaceState(null, "", "#" + target);
+        if (target === "dashboard") refreshDashboard();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function applyPublicConfig(cfg) {
+        state.config = cfg || state.config;
+        var live = Boolean(state.config.llm_configured);
+        $("global-mode-badge").className = "mode-badge " + (live ? "mode-live" : "mode-demo");
+        $("global-mode-text").textContent = live ? "Live Endpoint Ready" : "Demo Mode (Rules)";
+        $("analyzer-mode-badge").className = "mode-badge " + (live ? "mode-live" : "mode-demo");
+        $("analyzer-mode-text").textContent = live ? "Live Endpoint + Rule Engine Active" : "Demo Mode: Rule-Based Detection";
+        $("upload-limit-label").textContent = "(Optional • PDF, DOCX, TXT • Max " + String(state.config.max_upload_mb || 2) + " MB)";
+      }
+
+      function renderDashboardStats(stats) {
+        $("stat-total").textContent = String(stats.total_analyses || 0);
+        $("stat-low").textContent = String(stats.low_count || 0);
+        $("stat-medium").textContent = String(stats.medium_count || 0);
+        $("stat-high").textContent = String(stats.high_count || 0);
+
+        var canvas = $("riskDistributionChart"), empty = $("chart-empty-state"), total = Number(stats.total_analyses || 0);
+        if (total === 0) {
+          canvas.classList.add("hidden"); empty.classList.remove("hidden");
+          if (state.riskChart) { state.riskChart.destroy(); state.riskChart = null; }
+        } else {
+          canvas.classList.remove("hidden"); empty.classList.add("hidden");
+          var vals = [Number(stats.low_count || 0), Number(stats.medium_count || 0), Number(stats.high_count || 0)];
+          if (typeof window.Chart !== "undefined") {
+            if (state.riskChart) { state.riskChart.data.datasets[0].data = vals; state.riskChart.update(); }
+            else {
+              state.riskChart = new window.Chart(canvas.getContext("2d"), {
+                type: "doughnut",
+                data: { labels: ["Low Risk (0-29)", "Medium Risk (30-59)", "High Risk (60-100)"], datasets: [{ data: vals, backgroundColor: ["#10b981", "#f59e0b", "#ef4444"], borderColor: "#0b1120", borderWidth: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { position: "bottom", labels: { color: "#cbd5e1", padding: 14 } } } }
+              });
+            }
+          } else {
+            var ctx = canvas.getContext("2d"); canvas.width = 400; canvas.height = 190; ctx.clearRect(0, 0, 400, 190);
+            var lbs = ["Low", "Medium", "High"], cols = ["#10b981", "#f59e0b", "#ef4444"], maxV = Math.max(1, vals[0], vals[1], vals[2]);
+            for (var i = 0; i < 3; i++) { ctx.fillStyle = "#cbd5e1"; ctx.font = "14px sans-serif"; ctx.fillText(lbs[i] + " (" + vals[i] + ")", 12, 46 + i * 50); ctx.fillStyle = cols[i]; ctx.fillRect(120, 26 + i * 50, Math.max(4, (vals[i] / maxV) * 240), 26); }
+          }
+        }
+
+        var tbody = $("history-tbody"), hEmpty = $("history-empty"), hWrap = $("history-table-wrap"), list = stats.recent_history || [];
+        tbody.textContent = "";
+        hEmpty.classList.toggle("hidden", list.length > 0);
+        hWrap.classList.toggle("hidden", list.length === 0);
+        list.forEach(function (item) {
+          var tr = document.createElement("tr");
+          [item.display_timestamp || "", item.company_name || item.source_excerpt || "Unnamed offer", item.job_type || "", String(item.risk_score) + "/100"].forEach(function (txt, idx) {
+            var td = document.createElement("td"); td.textContent = txt;
+            if (idx === 3) { td.style.fontFamily = "var(--font-mono)"; td.style.fontWeight = "700"; }
+            tr.appendChild(td);
+          });
+          var tdCat = document.createElement("td"), pill = document.createElement("span");
+          pill.className = "pill " + pillClass(item.risk_category); pill.textContent = item.risk_category || ""; tdCat.appendChild(pill); tr.appendChild(tdCat);
+          var tdMode = document.createElement("td"); tdMode.textContent = item.analysis_mode === "live_ai" ? "Live" : "Demo (Rules)"; tr.appendChild(tdMode);
+          var tdAct = document.createElement("td"); tdAct.style.display = "flex"; tdAct.style.gap = "0.45rem";
+          var vBtn = document.createElement("button"); vBtn.type = "button"; vBtn.className = "btn btn-secondary btn-sm"; vBtn.textContent = "Inspect";
+          vBtn.addEventListener("click", function () {
+            fetch("/api/analysis/" + encodeURIComponent(item.analysis_id), { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && d.analysis) { renderResults(d.analysis); switchView("results"); } });
+          });
+          var pA = document.createElement("a"); pA.className = "btn btn-ghost btn-sm"; pA.href = "/api/report/" + encodeURIComponent(item.analysis_id) + "/pdf"; pA.textContent = "PDF";
+          tdAct.appendChild(vBtn); tdAct.appendChild(pA); tr.appendChild(tdAct); tbody.appendChild(tr);
+        });
+      }
+
+      function refreshDashboard() {
+        fetch("/api/session-stats", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && d.stats) renderDashboardStats(d.stats); }).catch(function () {});
+      }
+
+      function renderTrustBlock(trust) {
+        $("trust-status").textContent = trust.status || "Unverified Preliminary Assessment";
+        $("trust-source").textContent = trust.verification_source || "";
+        $("trust-checked").textContent = trust.checked_at || "";
+        $("trust-summary").textContent = trust.summary || "";
+        $("trust-badge").className = "pill " + (trust.live_verification_performed ? "pill-info" : "pill-medium");
+        $("trust-badge").textContent = trust.live_verification_performed ? "Live Metadata Checked" : "Unverified Preliminary";
+        var listEl = $("trust-signals-list"); listEl.textContent = "";
+        (trust.signals || []).forEach(function (sig) {
+          var box = document.createElement("div"); box.className = "finding-item"; box.style.marginBottom = "0";
+          var top = document.createElement("div"); top.className = "finding-top";
+          var strong = document.createElement("strong"); strong.textContent = sig.label || ""; top.appendChild(strong);
+          var st = sig.status || "info", p = document.createElement("span");
+          p.className = "pill " + (st === "pass" ? "pill-low" : (st === "warn" ? "pill-medium" : (st === "fail" ? "pill-high" : "pill-info")));
+          p.textContent = st; top.appendChild(p);
+          var det = document.createElement("div"); det.className = "text-sec"; det.style.fontSize = "0.86rem"; det.textContent = sig.detail || "";
+          box.appendChild(top); box.appendChild(det); listEl.appendChild(box);
+        });
+      }
+
+      function renderResults(a) {
+        state.currentAnalysis = a;
+        $("results-empty-card").classList.add("hidden");
+        $("results-content").classList.remove("hidden");
+        $("results-header-actions").classList.remove("hidden");
+        $("download-pdf-btn").href = "/api/report/" + encodeURIComponent(a.analysis_id) + "/pdf";
+        $("results-subtitle").textContent = "Case ID: " + a.analysis_id + " • " + a.display_timestamp + " • " + a.job_type;
+        $("results-mode-banner").className = "alert " + (a.analysis_mode === "live_ai" ? "alert-success" : "alert-warning");
+        $("res-mode-label").textContent = a.mode_label || "";
+        $("res-ai-notice").textContent = a.ai_notice || "";
+        $("res-ai-notice").classList.toggle("hidden", !a.ai_notice);
+        $("res-header-pill").className = "pill " + pillClass(a.risk_category);
+        $("res-header-pill").textContent = a.risk_category + " Risk (" + String(a.risk_score) + "/100)";
+        $("res-band-pill").className = "pill " + pillClass(a.risk_category);
+        $("res-band-pill").textContent = a.risk_band_label || "";
+        $("gauge-score-text").textContent = String(a.risk_score);
+        $("gauge-sub-text").textContent = "OUT OF 100 (" + String(a.risk_category || "").toUpperCase() + ")";
+        var arc = $("gauge-arc"), offset = 270.2 * (1 - Math.max(0, Math.min(100, Number(a.risk_score || 0))) / 100);
+        arc.setAttribute("stroke", a.risk_category === "Low" ? "#10b981" : (a.risk_category === "Medium" ? "#f59e0b" : "#ef4444"));
+        arc.style.transition = "stroke-dashoffset 650ms cubic-bezier(0.22, 1, 0.36, 1)";
+        requestAnimationFrame(function () { arc.setAttribute("stroke-dashoffset", offset.toFixed(1)); });
+        $("res-summary").textContent = a.executive_summary || "";
+        $("res-disclaimer").textContent = a.disclaimer || "";
+
+        var cs = a.category_scores || {}, labels = ["Financial & Payment", "Selection Process", "Compensation Realism", "Identity & Comms", "Company Verifiability"];
+        var vals = [Number(cs.financial_payment || 0), Number(cs.selection_process || 0), Number(cs.compensation_realism || 0), Number(cs.identity_communication || 0), Number(cs.company_verifiability || 0)];
+        var cCanvas = $("categoryChart");
+        if (typeof window.Chart !== "undefined") {
+          if (state.categoryChart) state.categoryChart.destroy();
+          state.categoryChart = new window.Chart(cCanvas.getContext("2d"), {
+            type: "bar",
+            data: { labels: labels, datasets: [{ label: "Risk Intensity (0-100)", data: vals, borderRadius: 6, backgroundColor: vals.map(function (v) { return v >= 60 ? "#ef4444" : (v >= 30 ? "#f59e0b" : "#10b981"); }) }] },
+            options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, scales: { x: { min: 0, max: 100, grid: { color: "rgba(148,163,184,0.12)" }, ticks: { color: "#94a3b8" } }, y: { grid: { display: false }, ticks: { color: "#cbd5e1" } } }, plugins: { legend: { display: false } } }
+          });
+        } else {
+          var ctx = cCanvas.getContext("2d"); cCanvas.width = 440; cCanvas.height = 230; ctx.clearRect(0, 0, 440, 230);
+          for (var i = 0; i < labels.length; i++) { var y = 16 + i * 42; ctx.fillStyle = "#cbd5e1"; ctx.font = "12px sans-serif"; ctx.fillText(labels[i], 8, y + 16); ctx.fillStyle = vals[i] >= 60 ? "#ef4444" : (vals[i] >= 30 ? "#f59e0b" : "#10b981"); ctx.fillRect(160, y, Math.max(4, (vals[i] / 100) * 240), 20); ctx.fillStyle = "#f8fafc"; ctx.fillText(String(vals[i]), 408, y + 16); }
+        }
+
+        var warnings = a.warning_signs || [], wList = $("res-warnings-list");
+        $("res-warning-count").textContent = String(warnings.length) + " Indicator(s)"; wList.textContent = "";
+        if (!warnings.length) {
+          var p0 = document.createElement("p"); p0.className = "text-sec"; p0.style.margin = "0"; p0.textContent = "No rule-based warning indicators matched. Continue verifying employer identity independently."; wList.appendChild(p0);
+        } else {
+          warnings.forEach(function (item) {
+            var box = document.createElement("div"); box.className = "finding-item";
+            var top = document.createElement("div"); top.className = "finding-top";
+            var title = document.createElement("strong"); title.textContent = item.title || ""; top.appendChild(title);
+            var s = String(item.severity || "medium").toLowerCase(), sev = document.createElement("span");
+            sev.className = "pill " + (s === "low" ? "pill-low" : (s === "medium" ? "pill-medium" : "pill-high")); sev.textContent = s + " severity"; top.appendChild(sev); box.appendChild(top);
+            var exp = document.createElement("p"); exp.className = "text-sec"; exp.style.margin = "0.35rem 0 0.6rem"; exp.textContent = item.explanation || ""; box.appendChild(exp);
+            if (item.matched_phrases && item.matched_phrases.length) {
+              var pw = document.createElement("div"); pw.style.marginBottom = "0.45rem";
+              var lbl = document.createElement("span"); lbl.className = "text-mut"; lbl.style.fontSize = "0.8rem"; lbl.style.display = "block"; lbl.textContent = "Matched Suspicious Phrases:"; pw.appendChild(lbl);
+              item.matched_phrases.forEach(function (ph) { var code = document.createElement("code"); code.className = "phrase-chip"; code.textContent = '"' + ph + '"'; pw.appendChild(code); });
+              box.appendChild(pw);
+            }
+            if (item.context_note) { var cn = document.createElement("div"); cn.style.fontSize = "0.82rem"; cn.style.color = "var(--accent-cyan-bright)"; cn.textContent = "Context note: " + item.context_note; box.appendChild(cn); }
+            wList.appendChild(box);
+          });
+        }
+
+        var positives = a.positive_indicators || [], pList = $("res-positives-list");
+        $("res-pos-count").textContent = String(positives.length); pList.textContent = "";
+        if (!positives.length) {
+          var noP = document.createElement("p"); noP.className = "text-mut"; noP.style.margin = "0"; noP.textContent = "No clear positive trust indicators were detected in the supplied text."; pList.appendChild(noP);
+        } else {
+          positives.forEach(function (pos) {
+            var box = document.createElement("div"); box.className = "finding-item";
+            var st = document.createElement("strong"); st.textContent = pos.title || ""; box.appendChild(st);
+            var pe = document.createElement("p"); pe.className = "text-sec"; pe.style.margin = "0.3rem 0"; pe.textContent = pos.explanation || ""; box.appendChild(pe);
+            if (pos.evidence) { var cd = document.createElement("code"); cd.style.fontFamily = "var(--font-mono)"; cd.style.fontSize = "0.8rem"; cd.style.color = "#6ee7b7"; cd.textContent = 'Evidence: "' + pos.evidence + '"'; box.appendChild(cd); }
+            pList.appendChild(box);
+          });
+        }
+
+        var missing = a.missing_information || [], mList = $("res-missing-list");
+        $("res-miss-count").textContent = String(missing.length); mList.textContent = "";
+        if (!missing.length) {
+          var noM = document.createElement("p"); noM.className = "text-mut"; noM.style.margin = "0"; noM.textContent = "Key descriptive fields were present; independent verification remains essential."; mList.appendChild(noM);
+        } else {
+          var ul = document.createElement("ul"); ul.className = "text-sec"; ul.style.margin = "0"; ul.style.paddingLeft = "1.2rem";
+          missing.forEach(function (m) { var li = document.createElement("li"); li.textContent = m; ul.appendChild(li); }); mList.appendChild(ul);
+        }
+
+        var sList = $("res-steps-list"); sList.textContent = "";
+        (a.recommended_next_steps || []).forEach(function (step) { var li = document.createElement("li"); li.textContent = step; sList.appendChild(li); });
+        var conf = a.confidence_assessment || {};
+        $("res-conf-pill").textContent = (conf.level || "Moderate") + " Confidence";
+        $("res-conf-text").textContent = conf.evidence_limitations || "";
+        $("trust-company-name").value = a.company_name || "";
+        $("trust-company-website").value = a.company_website || "";
+        renderTrustBlock(a.company_trust || {});
+
+        $("chip-safe-apply").textContent = "Is this " + String(a.job_type || "offer").toLowerCase() + " safe to apply for?";
+        var msgBox = $("advisor-messages"); msgBox.textContent = "";
+        var welcome = document.createElement("div"); welcome.className = "chat-msg chat-msg-bot";
+        welcome.textContent = "Loaded assessment for this " + a.job_type + " (Risk Score: " + String(a.risk_score) + "/100, " + a.risk_category + "). Select a question above or ask your own question below.";
+        msgBox.appendChild(welcome); hideAlert($("advisor-error"));
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var tog = $("nav-toggle-btn"), nav = $("primary-nav");
+        if (tog && nav) tog.addEventListener("click", function () { tog.setAttribute("aria-expanded", String(nav.classList.toggle("open"))); });
+        document.querySelectorAll("[data-route]").forEach(function (el) { el.addEventListener("click", function (e) { if (el.tagName === "A") e.preventDefault(); switchView(el.getAttribute("data-route")); }); });
+
+        fetch("/api/config", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok) applyPublicConfig(d); }).catch(function () {});
+        var h = (window.location.hash || "").replace("#", ""), parts = (window.location.pathname || "/").replace(/^\/+/, "").split("/");
+        var pathRoute = parts[0] || "", aid = (pathRoute === "results" && parts[1]) ? parts[1] : "";
+        var startRoute = ["home", "dashboard", "analyzer", "results"].indexOf(h) !== -1 ? h : (["dashboard", "analyzer", "results"].indexOf(pathRoute) !== -1 ? pathRoute : "home");
+        if (aid) fetch("/api/analysis/" + encodeURIComponent(aid), { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && d.analysis) renderResults(d.analysis); }).catch(function () {});
+        switchView(startRoute);
+
+        var form = $("analyzer-form"), alertEl = $("analyzer-alert"), offerText = $("offer-text"), charCounter = $("char-counter"), companyName = $("company-name"), companyWebsite = $("company-website"), dropzone = $("dropzone"), fileInput = $("document-upload"), fileStatus = $("file-status"), analyzeBtn = $("analyze-btn"), spinner = $("analyze-spinner"), btnText = $("analyze-btn-text");
+        var updateCounter = function () { charCounter.textContent = String(offerText.value.length) + " / " + String(state.config.max_text_length || 25000); };
+        offerText.addEventListener("input", updateCounter);
+
+        function loadSample(key) {
+          var s = SAMPLES[key]; if (!s) return;
+          document.querySelectorAll('input[name="job_type"]').forEach(function (r) { r.checked = (r.value === s.job_type); });
+          companyName.value = s.company_name; companyWebsite.value = s.company_website; offerText.value = s.offer_text; updateCounter();
+          showAlert(alertEl, "Loaded sample scenario. Click 'Analyze Offer' to inspect.", "info");
+        }
+        document.querySelectorAll(".sample-btn").forEach(function (b) { b.addEventListener("click", function () { loadSample(b.getAttribute("data-sample")); }); });
+        document.querySelectorAll(".quick-sample-btn").forEach(function (b) { b.addEventListener("click", function () { loadSample(b.getAttribute("data-sample")); switchView("analyzer"); }); });
+
+        function handleFile(file) {
+          if (!file) return;
+          hideAlert(alertEl);
+          var ext = (file.name.split(".").pop() || "").toLowerCase(), maxMb = Number(state.config.max_upload_mb || 2);
+          if (["pdf", "docx", "txt"].indexOf(ext) === -1) return showAlert(alertEl, "Unsupported format. Please upload PDF, DOCX, or TXT.", "error");
+          if (file.size > maxMb * 1024 * 1024) return showAlert(alertEl, "File exceeds the " + String(maxMb) + " MB limit.", "error");
+          fileStatus.textContent = "Extracting text from " + file.name + "..."; fileStatus.classList.remove("hidden");
+          var fd = new FormData(); fd.append("file", file);
+          fetch("/api/extract-document", { method: "POST", body: fd, credentials: "same-origin" })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+              if (!res.ok || !res.data.ok) { fileStatus.classList.add("hidden"); return showAlert(alertEl, (res.data && res.data.error) ? res.data.error : "Extraction failed.", "error"); }
+              offerText.value = res.data.extracted_text || ""; updateCounter();
+              fileStatus.textContent = res.data.filename + " (" + String(res.data.char_count) + " chars extracted)";
+              showAlert(alertEl, "Document parsed in memory. Review text below and click 'Analyze Offer'.", "success");
+            }).catch(function () { fileStatus.classList.add("hidden"); showAlert(alertEl, "Network error extracting document.", "error"); });
+        }
+        dropzone.addEventListener("click", function () { fileInput.click(); });
+        dropzone.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
+        dropzone.addEventListener("dragover", function (e) { e.preventDefault(); dropzone.classList.add("drag-over"); });
+        dropzone.addEventListener("dragleave", function () { dropzone.classList.remove("drag-over"); });
+        dropzone.addEventListener("drop", function (e) { e.preventDefault(); dropzone.classList.remove("drag-over"); if (e.dataTransfer && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener("change", function () { if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]); });
+        $("reset-btn").addEventListener("click", function () { form.reset(); $("jt-internship").checked = true; fileInput.value = ""; fileStatus.textContent = ""; fileStatus.classList.add("hidden"); updateCounter(); hideAlert(alertEl); });
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault(); hideAlert(alertEl);
+          var textVal = offerText.value.trim();
+          if (!textVal) { offerText.focus(); return showAlert(alertEl, "Please paste an offer description or upload a readable document.", "error"); }
+          var selectedType = document.querySelector('input[name="job_type"]:checked');
+          analyzeBtn.disabled = true; spinner.classList.remove("hidden"); btnText.textContent = "Analyzing...";
+          fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ offer_text: textVal, job_type: selectedType ? selectedType.value : "Internship", company_name: companyName.value.trim(), company_website: companyWebsite.value.trim() }) })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) { if (!res.ok || !res.data.ok) return showAlert(alertEl, (res.data && res.data.error) ? res.data.error : "Analysis failed.", "error"); renderResults(res.data.analysis); switchView("results"); })
+            .catch(function () { showAlert(alertEl, "Unable to reach the analysis server.", "error"); })
+            .finally(function () { analyzeBtn.disabled = false; spinner.classList.add("hidden"); btnText.textContent = "Analyze Offer"; });
+        });
+
+        $("clear-session-btn").addEventListener("click", function () {
+          var dAlert = $("dashboard-alert");
+          fetch("/api/session-clear", { method: "POST", credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d && d.ok) { renderDashboardStats(d.stats); state.currentAnalysis = null; $("results-content").classList.add("hidden"); $("results-header-actions").classList.add("hidden"); $("results-empty-card").classList.remove("hidden"); $("results-subtitle").textContent = "No active analysis selected in this session."; showAlert(dAlert, "Session analysis history cleared.", "success"); }
+          }).catch(function () { showAlert(dAlert, "Unable to clear session history.", "error"); });
+        });
+
+        $("company-trust-form").addEventListener("submit", function (e) {
+          e.preventDefault(); if (!state.currentAnalysis) return;
+          var btn = $("trust-recheck-btn"); btn.disabled = true;
+          fetch("/api/company-trust", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ analysis_id: state.currentAnalysis.analysis_id, company_name: $("trust-company-name").value.trim(), company_website: $("trust-company-website").value.trim(), offer_text: state.currentAnalysis.source_excerpt || "" }) })
+            .then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && d.company_trust) renderTrustBlock(d.company_trust); }).finally(function () { btn.disabled = false; });
+        });
+
+        function askAdvisor(qText) {
+          var q = String(qText || "").trim(), box = $("advisor-messages"), inp = $("advisor-question"), btn = $("advisor-send-btn"), err = $("advisor-error");
+          if (!q || !state.currentAnalysis) return;
+          hideAlert(err);
+          var uMsg = document.createElement("div"); uMsg.className = "chat-msg chat-msg-user"; uMsg.textContent = q; box.appendChild(uMsg); box.scrollTop = box.scrollHeight;
+          inp.value = ""; btn.disabled = true; btn.textContent = "Thinking...";
+          fetch("/api/advisor", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ analysis_id: state.currentAnalysis.analysis_id, question: q }) })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+              if (!res.ok || !res.data.ok) return showAlert(err, (res.data && res.data.error) ? res.data.error : "Advisor error.", "error");
+              if (res.data.mode_label) $("advisor-mode-pill").textContent = res.data.mode_label;
+              var bMsg = document.createElement("div"); bMsg.className = "chat-msg chat-msg-bot"; bMsg.textContent = res.data.answer; box.appendChild(bMsg); box.scrollTop = box.scrollHeight;
+            }).catch(function () { showAlert(err, "Network error reaching AI Safety Advisor.", "error"); }).finally(function () { btn.disabled = false; btn.textContent = "Ask Advisor"; });
+        }
+        $("advisor-form").addEventListener("submit", function (e) { e.preventDefault(); askAdvisor($("advisor-question").value); });
+        document.querySelectorAll(".advisor-chip").forEach(function (c) { c.addEventListener("click", function () { askAdvisor(c.textContent); }); });
+      });
+    })();
+  </script>
+</body>
+</html>
